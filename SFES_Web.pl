@@ -556,17 +556,6 @@ about(Request) :-
                                     secure than SQL, but I don\'t really know what I\'m talking about.
                                 </p>
                             </div>
-                            <div class="fixed-action-btn">
-                                <button class="btn-floating btn-large">
-                                    <i class="material-icons">mode_edit</i>
-                                </button>
-                                <ul>
-                                    <li><a class="btn-floating red"><i class="material-icons">insert_chart</i></a></li>
-                                    <li><a class="btn-floating yellow darken-1"><i class="material-icons">format_quote</i></a></li>
-                                    <li><a class="btn-floating green"><i class="material-icons">publish</i></a></li>
-                                    <li><a class="btn-floating blue"><i class="material-icons">attach_file</i></a></li>
-                                </ul>
-                            </div>
                         </div>
                     </body>
                 </htm>', []).
@@ -745,24 +734,7 @@ pregCheck(Request, Data) :-
                         Data.sActive,
                         Data.diarrhea
                     ]).
-                    /*
-Data.name,
-                    Data.age,
-                    Data.gender,
-                    Data.temp,
-                    Data.cough,
-                    Data.eyes,
-                    Data.fever,
-                    Data.headache,
-                    Data.throat,
-                    Data.fatigue,
-                    Data.nose,
-                    Data.ache,
-                    Data.nausea,
-                    Data.vomitting,
-                    Data.sActive,
-                    Data.diarrhea
-*/
+                    
 
 pregStat(Request) :-
         member(method(post), Request), !,
@@ -782,38 +754,3 @@ updateDrug(Request):-
         http_read_data(Request, Data, []),
         asserta(drugFor(Data.drug,Data.ailment)),
         index(Request).
-
-        /*head(X),
-        format('Content-type: text/html~n~n', []),
-        format('<html>
-                    ~s
-
-                    <body>',[X]),
-        nav,
-        format('
-                        <div class="container">
-                            <div class="container about-body grey lighten-4">
-                                <h1> About This Shit </h1>
-                                <p>
-                                    I don\'t really have much to say here, cuz uk, it\'s just a quick test.</br>
-                                    But, anyways, this is me serving up some html with prolog. Not really serving up thou,
-                                    but more like html-writing the page over to the client. Hmmmm, I wonder how people use
-                                    prolog servers in real life. Like, where would you host it? Do they even still support
-                                    prolog browsers? Are they even secure? Hmmmm, seeing how data is, it\'s prolly more 
-                                    secure than SQL, but I don\'t really know what I\'m talking about.
-                                </p>
-                            </div>
-                            <div class="fixed-action-btn">
-                                <button class="btn-floating btn-large">
-                                    <i class="material-icons">mode_edit</i>
-                                </button>
-                                <ul>
-                                    <li><a class="btn-floating red"><i class="material-icons">insert_chart</i></a></li>
-                                    <li><a class="btn-floating yellow darken-1"><i class="material-icons">format_quote</i></a></li>
-                                    <li><a class="btn-floating green"><i class="material-icons">publish</i></a></li>
-                                    <li><a class="btn-floating blue"><i class="material-icons">attach_file</i></a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </body>
-                </htm>', []).*/
