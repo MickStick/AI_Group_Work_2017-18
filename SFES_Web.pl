@@ -55,6 +55,72 @@ drugFor(imodium,vomiting).
 drugFor(aspirin,fever).
 
 %Print the appropriate drug for patients symptoms
+test_gen:-
+            phrase( gen_drug_ailment_data(cough), CoughHtml, []),print_html(CoughHtml).
+
+/*get_drug(X, td(X)) :-
+                    drugFor(X,Y).*/
+
+get_drug_data(X, tr([ td(Y), td(X)])) :-
+                    drugFor(X,Y).
+
+/*get_ailment(X, td(X)) :-
+                    drugFor(Y,X).
+
+            
+dosomething([]).
+
+dosomething([H|T]) -->
+    html([
+            span([
+                \ailment_data(H)          
+            ])
+    ]).*/
+
+
+print_drug_ailment(Ailment) -->{
+    findall(X,drugFor(X,Ailment),Drugs),
+    maplist(get_drug_data, Drugs, Data)
+},
+html([\html_post(drugData, Data)]).
+
+
+/*drug_data(Ailment) --> {
+    findall(X,drugFor(X,Ailment),Drugs),
+    maplist(get_drug, Drugs, Data)
+},
+html([\html_post(drugData, Data)]),
+html([\dosomething(Drugs)]).
+
+
+
+ailment_data(Drug) --> {
+    findall(X,drugFor(Drug,X),Ailments),
+    maplist(get_ailment, Ailments,Data)
+}, html([\html_post(ailmentData, Data)]).
+
+
+gen_drug_ailment(Drug, Ailment) -->
+        html([
+            span([
+                \drug_data(Ailment)          
+            ]),
+            tr([
+                \html_receive(ailmentData),
+                \html_receive(drugData)
+            ])
+        ]).*/
+
+gen_drug_ailment_data(Ailment) -->
+        html([
+            span([
+                \print_drug_ailment(Ailment)          
+            ]),
+            span([
+                \html_receive(drugData)
+            ])
+        ]).
+
 getDrug(Data) :- 
                 format('<h5>Prescribed Drugs</h5>
                         <table class="striped drug_table">
@@ -66,61 +132,33 @@ getDrug(Data) :-
                             </thead>
 
                             <tbody>',[]),
-                (Data.cough == 'yes' -> drugFor(mucinex,X),drugFor(Y,cough),
+                /*(Data.cough == 'yes' -> drugFor(mucinex,X),drugFor(Y,cough),
                                         format('<tr>
                                                     <td>~s</td>
                                                     <td>~s</td>
-                                                </tr>',[X,Y]);format('',[])),
-                (Data.headache == 'yes' -> drugFor(advil,A),drugFor(H,headache),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[A,H]);format('',[])),
-                (Data.eyes == 'yes' -> drugFor(eye_drops,E),drugFor(W,watery_red_eyes),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[E,W]);format('',[])),
-                (Data.throat == 'yes' -> drugFor(tylenol,T),drugFor(S,sore_throat),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[T,S]);format('',[])),
-                (Data.fatigue == 'yes' -> drugFor(rest,R),drugFor(F,fatigue),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[R,F]);format('',[])),
-                (Data.nose == 'yes' -> drugFor(nytol,N),drugFor(Ru,runny_nose),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[N,Ru]);format('',[])),
-                (Data.ache == 'yes' -> drugFor(motrin,M),drugFor(B,body_aches),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[M,B]);format('',[])),
-                (Data.nausea == 'yes' -> drugFor(xanax,Xa),drugFor(Na,nausea),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[Xa,Na]);format('',[])),
-                (Data.diarrhea == 'yes' -> drugFor(pepto_bismal,P),drugFor(D,diarrhea),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[P,D]);format('',[])),
-                (Data.vomitting == 'yes' -> drugFor(imodium,I),drugFor(V,vomiting),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[I,V]);format('',[])),
-                (Data.fever == 'yes' -> drugFor(aspirin,As),drugFor(Fe,fever),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[As,Fe]);format('',[])),
+                                                </tr>',[X,Y]);format('',[])),*/
+                (Data.cough == 'yes' -> phrase( gen_drug_ailment_data(cough), CoughHtml, []),
+                                        print_html(CoughHtml); format('',[])),
+                (Data.headache == 'yes' -> phrase( gen_drug_ailment_data(headache), HeadacheHtml, []),
+                                            print_html(HeadacheHtml); format('',[])),
+                (Data.eyes == 'yes' -> phrase( gen_drug_ailment_data(watery_red_eyes), EyesHtml, []),
+                                            print_html(EyesHtml); format('',[])),
+                (Data.throat == 'yes' -> phrase( gen_drug_ailment_data(sore_throat), ThroatHtml, []),
+                                            print_html(ThroatHtml); format('',[])),
+                (Data.fatigue == 'yes' -> phrase( gen_drug_ailment_data(fatigue), FatigueHtml, []),
+                                            print_html(FatigueHtml); format('',[])),
+                (Data.nose == 'yes' -> phrase( gen_drug_ailment_data(runny_nose), NoseHtml, []),
+                                            print_html(NoseHtml); format('',[])),
+                (Data.ache == 'yes' -> phrase( gen_drug_ailment_data(body_aches), AcheHtml, []),
+                                            print_html(AcheHtml); format('',[])),
+                (Data.nausea == 'yes' -> phrase( gen_drug_ailment_data(nausea), NauseaHtml, []),
+                                            print_html(NauseaHtml); format('',[])),
+                (Data.diarrhea == 'yes' -> phrase( gen_drug_ailment_data(diarrhea), DiarrheaHtml, []),
+                                            print_html(DiarrheaHtml); format('',[])),
+                (Data.vomitting == 'yes' -> phrase( gen_drug_ailment_data(vomiting), VomitingHtml, []),
+                                            print_html(VomitingHtml); format('',[])),
+                (Data.fever == 'yes' -> phrase( gen_drug_ailment_data(fever), FeverHtml, []),
+                                            print_html(FeverHtml); format('',[])),
                 format('
                                 
                             </tbody>
@@ -223,16 +261,14 @@ head(X) :-
                         <script language="javascript">
                              $(document).ready(function(){
                                  $(\'.modal\').modal();
-                                 var newHtml = $(\'#prevents\').text().replace("Content-type: text/html; charset=UTF-8","");
-                                 console.log(newHtml);
+                                /*var newHtml = $(\'#prevents\').text().replace("Content-type: text/html; charset=UTF-8","");
+                                console.log(newHtml);
                                 const newDiv = newHtml.split(".");
                                  $(\'#prevents\').empty();
                                  for(var x = 0;  x < newDiv.length - 1; x++){
                                      if(x == 0){
                                         var para = $("<li><h4>" + newDiv[x] + "</h4><hr class=\'grey lighten-5\'></li>");
-                                        para.addClass("collection-header");
-                                        /*var h = $();
-                                        para.append(h);  */                          
+                                        para.addClass("collection-header");                        
                                         $(\'#prevents\').append(para);
                                      }else{
                                         var para = $("<li>" + newDiv[x] + "</li>");
@@ -240,7 +276,7 @@ head(X) :-
                                         $(\'#prevents\').append(para);
                                      }
                                      
-                                 }
+                                 }*/
                                  for(var x = 0; x < $(\'.drug_table td\').length; x++){
                                      $(\'.drug_table td\').eq(x).text($(\'.drug_table td\').eq(x).text().replace(/_/g," "));
                                  }
@@ -296,6 +332,10 @@ head(X) :-
 
                             .modal h6{
                                 font-size: 23px !important;
+                            }
+
+                            .not_here{
+                                display: none;
                             }
                         </style>                  
                     </head>'.
@@ -567,8 +607,10 @@ checkStat(Request) :-
         atom_number(Data.age, Age),
         (Data.gender == female, Age > 10, Age < 45 -> pregCheck(Request, Data); PT is 0, symptom_tally(RT, Data), statResults(Request, Data, RT, PT)).
         
-get_preventions(X, p(class(center),X)) :-
+get_preventions(X, li(class('collection-item'),X)) :-
                     prevention(Who).
+
+
 
 prevent_para --> {
     findall(X,prevention(X),Prevents),
@@ -576,7 +618,9 @@ prevent_para --> {
 }, html([\html_post(preventions, Paras)]).
 
 get_prevent_para -->
-                html([p(\html_receive(Preventions))]).
+                html([li(\html_receive(Preventions))]).
+
+
 
 statResults(Request, Data, RT, PT) :-
         head(X),
@@ -611,15 +655,18 @@ statResults(Request, Data, RT, PT) :-
                                 <br>
                                  
                                 <ul class="collection" id="prevents">
-                                    <li class="collection-header><h4 class="center">~s</h4></li>',[
+                                    <li class="collection-header">
+                                        <h4 class="center">~s</h4>
+                                        <hr class=\'grey lighten-5\'>
+                                    </li>',[
                                         TtlRisk,
                                         Title]),
-        reply_html_page(
-            title(''),
-            [\gen_page]
-        ),
+        phrase(
+            gen_page,
+            TokenizedHtml,
+            []),
+        print_html(TokenizedHtml),
         format('                </ul>
-                                <p class="center">prevention Count:</p>
                                 <br><br>',[]),
         getDrug(Data),
         format('
@@ -634,8 +681,8 @@ statResults(Request, Data, RT, PT) :-
 
 gen_page -->
         html([
-            p(\prevent_para),
-            p(\html_receive(preventions))
+            span(\prevent_para),
+            span(\html_receive(preventions))
 
         ]).
 
