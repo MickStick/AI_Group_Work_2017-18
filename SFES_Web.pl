@@ -7,7 +7,6 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_path)).
-:- dynamic patient_sym/1.
 :- style_check(-singleton).
 
 %Full Blown Swine Flu symptoms attract a risk tally (RT) of 190
@@ -29,6 +28,105 @@ Data.name,
                     Data.sActive,
                     Data.diarrhea
 */
+
+:- dynamic patient_sym/1, prevention/1, p_drugs/1.
+
+%Initial patient_sym and p_drugs facts for the dynamic databases
+patient_sym('').
+p_drugs('').
+
+%Full Blown Swine Flu symptoms attract a risk tally (RT) of 160
+
+%To remove all the previous patient/s symptoms
+undoSym :- retract(patient_sym(_)),fail.
+undoDrugs :- retract(p_drugs(_)),fail.
+
+%Drug database for educated assumptions for relief
+drugFor(advil,headache).
+drugFor(mucinex,cough).
+drugFor(eye_drops,watery_red_eyes).
+drugFor(tylenol,sore_throat).
+drugFor(rest,fatigue).
+drugFor(nytol,runny_nose).
+drugFor(motrin,body_aches).
+drugFor(xanax,nausea).
+drugFor(pepto_bismal,diarrhea).
+drugFor(imodium,vomiting).
+drugFor(aspirin,fever).
+
+%Print the appropriate drug for patients symptoms
+getDrug(Data) :- 
+                format('<h5>Prescribed Drugs</h5>
+                        <table class="striped drug_table">
+                            <thead>
+                            <tr>
+                                <th>Symptom</th>
+                                <th>Drug</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>',[]),
+                (Data.cough == 'yes' -> drugFor(mucinex,X),drugFor(Y,cough),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[X,Y]);format('',[])),
+                (Data.headache == 'yes' -> drugFor(advil,A),drugFor(H,headache),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[A,H]);format('',[])),
+                (Data.eyes == 'yes' -> drugFor(eye_drops,E),drugFor(W,watery_red_eyes),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[E,W]);format('',[])),
+                (Data.throat == 'yes' -> drugFor(tylenol,T),drugFor(S,sore_throat),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[T,S]);format('',[])),
+                (Data.fatigue == 'yes' -> drugFor(rest,R),drugFor(F,fatigue),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[R,F]);format('',[])),
+                (Data.nose == 'yes' -> drugFor(nytol,N),drugFor(Ru,runny_nose),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[N,Ru]);format('',[])),
+                (Data.ache == 'yes' -> drugFor(motrin,M),drugFor(B,body_aches),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[M,B]);format('',[])),
+                (Data.nausea == 'yes' -> drugFor(xanax,Xa),drugFor(Na,nausea),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[Xa,Na]);format('',[])),
+                (Data.diarrhea == 'yes' -> drugFor(pepto_bismal,P),drugFor(D,diarrhea),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[P,D]);format('',[])),
+                (Data.vomitting == 'yes' -> drugFor(imodium,I),drugFor(V,vomiting),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[I,V]);format('',[])),
+                (Data.fever == 'yes' -> drugFor(aspirin,As),drugFor(Fe,fever),
+                                        format('<tr>
+                                                    <td>~s</td>
+                                                    <td>~s</td>
+                                                </tr>',[As,Fe]);format('',[])),
+                format('
+                                
+                            </tbody>
+                        </table><br><br>
+                ',[]).
+
 %Database of swine flu symptoms for quick analysis and elimination
 symptom(RL5, cough, Data)          :- Data.cough == yes -> RL5  is  5,asserta(patient_sym(cough)); RL5  is 0.
 symptom(RL7, watery_red_eyes, Data):- Data.eyes == yes -> RL7  is 10,asserta(patient_sym(watery_red_eyes)); RL7  is 0.
@@ -53,7 +151,7 @@ p_symptom(PL4, Data):- Data.bleed == yes -> PL4 is 5; PL4 is 0.
 prevention('Stay home if you are sick.').
 prevention('Wash your hands thoroughly and frequently.').
 prevention('Contain your coughs and sneezes.').
-prevention('Avoid contact.').
+prevention('Avoid close contact.').
 prevention('Reduce exposure within your household.').
 
 %Allows the patient to add suggestive prevention means
@@ -108,6 +206,9 @@ server(Port) :-
     http_handler('/check/stat',checkStat,[]), 
     http_handler('/about',about,[]),
     http_handler('/pregCheck/Stat',pregStat,[]),
+    http_handler('/check/temp',temp,[]),
+    http_handler('/update/prevention',updatePrev,[]),
+    http_handler('/update/drug',updateDrug,[]),
     main.
 
 
@@ -121,15 +222,29 @@ head(X) :-
                         <link rel="shortcut-icon" href="/icon/favicon.ico"/>
                         <script language="javascript">
                              $(document).ready(function(){
+                                 $(\'.modal\').modal();
                                  var newHtml = $(\'#prevents\').text().replace("Content-type: text/html; charset=UTF-8","");
                                  console.log(newHtml);
-                                 const newDiv = newHtml.split(".");
+                                const newDiv = newHtml.split(".");
                                  $(\'#prevents\').empty();
-                                 for(var x = 0;  x < newDiv.length; x++){
-                                     var para = $("<p>" + newDiv[x] + "</p>");
-                                     para.addClass("center");
-                                    $(\'#prevents\').append(para);
+                                 for(var x = 0;  x < newDiv.length - 1; x++){
+                                     if(x == 0){
+                                        var para = $("<li><h4>" + newDiv[x] + "</h4><hr class=\'grey lighten-5\'></li>");
+                                        para.addClass("collection-header");
+                                        /*var h = $();
+                                        para.append(h);  */                          
+                                        $(\'#prevents\').append(para);
+                                     }else{
+                                        var para = $("<li>" + newDiv[x] + "</li>");
+                                        para.addClass("collection-item");
+                                        $(\'#prevents\').append(para);
+                                     }
+                                     
                                  }
+                                 for(var x = 0; x < $(\'.drug_table td\').length; x++){
+                                     $(\'.drug_table td\').eq(x).text($(\'.drug_table td\').eq(x).text().replace(/_/g," "));
+                                 }
+                                
                                  $(\'.progress\').css({"display":"none"});
                                 /*document.getElementById("doNtn").addEventListener("click", function(e){
                                     e.preventDefault();
@@ -149,7 +264,15 @@ head(X) :-
                                 $(window).on("beforeload", function(){
                                     $(\'.progress\').css({"display":"block"});
                                 });
-
+                                $(\'#preventModal form .btn-floating\').click(function(e){
+                                    e.preventDefault();
+                                    var data = $(\'#preventModal form div input\').val()
+                                    if(data[data.length - 1] != "."){
+                                        data = data + ".";
+                                       $(\'#preventModal form div input\').val(data); 
+                                    }
+                                    $(\'#preventModal form\').submit();
+                                });
                                 
 
                             });
@@ -165,6 +288,14 @@ head(X) :-
                                 margin: 0 !important;
                                 position: fixed !important;
                                 top: 0 !important;
+                            }
+
+                            .modal{
+                                width: 350px;
+                            }
+
+                            .modal h6{
+                                font-size: 23px !important;
                             }
                         </style>                  
                     </head>'.
@@ -199,6 +330,57 @@ check(Request) :-
                     <body>',[X]),
             nav,
             format('    <div class="container">
+                            <div class="fixed-action-btn">
+                                <button class="btn-floating btn-large tooltipped" data-position="left" data-delay="80" data-tooltip="Update Options">
+                                    <i class="material-icons">menu</i>
+                                </button>
+                                <ul>
+                                    <li><a class="waves-effect waves-light btn-floating red tooltipped modal-trigger" href="#preventModal" data-position="left" data-delay="80" data-tooltip="Update Prevention Database"><i class="material-icons">flag</i></a></li>
+                                    <li><a class="waves-effect waves-light btn-floating yellow darken-1 tooltipped modal-trigger" href="#drugModal" data-position="left" data-delay="80" data-tooltip="Update Drug Database"><i class="material-icons">local_pharmacy</i></a></li>
+                                </ul>
+                            </div>
+                            <!-- Modal Structure -->
+                            <div id="preventModal" class="modal">
+                                <div class="modal-content">
+                                    <h6>Update Prevention DataBase</h6>
+                                    <br>
+                                    <form action="/update/prevention" method="POST">
+                                        <div class="input-field">
+                                            <input type="text" name="prevention" />
+                                            <label for="prevention">New Prevention</label>
+                                        </div>
+                                        <button class="btn-floating blue darken-4 right">
+                                            <i class="material-icons">mode_edit</i>
+                                        </button><br><br>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+                                </div>
+                            </div>
+                            <!-- Modal Structure -->
+                            <div id="drugModal" class="modal">
+                                <div class="modal-content">
+                                    <h5>Update Drug DataBase</h5>
+                                    <br>
+                                    <form action="/update/drug" method="POST">
+                                        <div class="input-field">
+                                            <input type="text" name="drug" />
+                                            <label for="drug">New Drug</label>
+                                        </div>
+                                        <div class="input-field">
+                                            <input type="text" name="ailment" />
+                                            <label for="ailment">Ailment It Treats</label>
+                                        </div>
+                                        <button class="btn-floating blue darken-4 right">
+                                            <i class="material-icons">mode_edit</i>
+                                        </button><br><br>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+                                </div>
+                            </div>
                             <form action="/check/stat" method="POST">
                                 <div class="container">
                                     <h3 class="center"> Check Your SWINE FLU Status </h3>
@@ -415,9 +597,9 @@ statResults(Request, Data, RT, PT) :-
         (FTemp > 100.4 -> TR is 20; TR is 0),
         TotalRisk is RT + PT + TR,
         atom_codes(TotalRisk, TtlRisk),
-        (TotalRisk < 110 -> Title = 'Here are some suggestions for dodging the flu ',
+        (TotalRisk < 110 -> Title = 'Here are some suggestions for dodging the flu.',
         prevention(Who);
-        Title = 'You have been infected with the swine', prevention(Who)),
+        Title = 'You have been infected with the swine.', prevention(Who)),
         %length(prevention(Who), Y),
         %findall(X,prevention(X),Paras),
         %maplist(get_preventions, Paras,Prevents),
@@ -438,19 +620,23 @@ statResults(Request, Data, RT, PT) :-
                                         </div>            
                                     </div>
                                 <br>
-                                <h5 class="center">~s</h5> <div id="prevents">',[
+                                 
+                                <ul class="collection" id="prevents">
+                                    <li class="collection-header><h4 class="center">~s</h4></li>',[
                                         TtlRisk,
                                         Title]),
         reply_html_page(
-            title('SFES'),
+            title(''),
             [\gen_page]
         ),
-        format('                </div>
-                                <p class="center">prevention Count: 0</p>
-                                <br><br>
+        format('                </ul>
+                                <p class="center">prevention Count:</p>
+                                <br><br>',[]),
+        getDrug(Data),
+        format('
                                 <a class="btn blue accent-2" href="/">
                                     Done
-                                </a><br><br><br>
+                                </a><br><br><br><br>
                         </div>
                     </body>
                 </htm>', [
@@ -584,6 +770,19 @@ pregStat(Request) :-
         symptom_tally(RT, Data),
         p_symptom_tally(PT, Data),
         statResults(Request, Data, RT, PT).
+
+updatePrev(Request):-
+        member(method(post), Request), !,
+        http_read_data(Request, Data, []),
+        asserta(prevention(Data.prevention)),
+        index(Request).
+
+updateDrug(Request):-
+        member(method(post), Request), !,
+        http_read_data(Request, Data, []),
+        asserta(drugFor(Data.drug,Data.ailment)),
+        index(Request).
+
         /*head(X),
         format('Content-type: text/html~n~n', []),
         format('<html>
