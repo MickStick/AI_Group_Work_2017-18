@@ -290,7 +290,7 @@ head(X) :-
                                     alert("This does nuffink!!");
                                 });*/
                                 $(\'input[name="gender"]\').change(function(){
-                                    if($(this).val() == "male"){
+                                    if($(this).val() == "male" || $(\'input[name="age"]\').val() > 10 || $(\'input[name="age"]\').val() < 45){
                                         $(\'input[name="period"]\').attr("disabled","disabled");
                                     }else{
                                         $(\'input[name="period"]\').removeAttr("disabled");
@@ -586,7 +586,7 @@ about(Request) :-
         format('
                         <div class="container">
                             <div class="container about-body grey lighten-4">
-                                <h1> About This Shit </h1>
+                                <h1> About SWine Flu </h1>
                                 <p>
                                     I don\'t really have much to say here, cuz uk, it\'s just a quick test.</br>
                                     But, anyways, this is me serving up some html with prolog. Not really serving up thou,
@@ -630,9 +630,10 @@ statResults(Request, Data, RT, PT) :-
         (FTemp > 100.4 -> TR is 20; TR is 0),
         TotalRisk is RT + PT + TR,
         atom_codes(TotalRisk, TtlRisk),
-        (TotalRisk < 110 -> Title = 'Here are some suggestions for dodging the flu.',
-        prevention(Who);
-        Title = 'You have been infected with the swine.', prevention(Who)),
+        (TotalRisk < 51 -> Title = 'Oh brah, you hella gucci', Color = 'green';
+        TotalRisk > 50, TotalRisk < 110 -> Title = 'Here are some suggestions for dodging the flu.', 
+        Color = 'orange';
+        Title = 'You have been infected with the swine.', Color = 'red'),
         %length(prevention(Who), Y),
         %findall(X,prevention(X),Paras),
         %maplist(get_preventions, Paras,Prevents),
@@ -647,8 +648,8 @@ statResults(Request, Data, RT, PT) :-
                                 <h1 class="center" > Your Status </h1>
                                 <hr style="width: 80%; margin: 1mm auto !important;"/>
                                 <h4 class="center">Results</h4>
-                                    <div id="card-alert" class="card-alert card orange lighten-5" style="width: 60%; margin: 2mm auto !important;">
-                                        <div class="alert-content card-content orange-text">
+                                    <div id="card-alert" class="card-alert card ~s lighten-5" style="width: 60%; margin: 2mm auto !important;">
+                                        <div class="alert-content card-content ~s-text">
                                             <p class="center"> Risk Tally: ~s</p>
                                         </div>            
                                     </div>
@@ -659,6 +660,8 @@ statResults(Request, Data, RT, PT) :-
                                         <h4 class="center">~s</h4>
                                         <hr class=\'grey lighten-5\'>
                                     </li>',[
+                                        Color,
+                                        Color,
                                         TtlRisk,
                                         Title]),
         phrase(
