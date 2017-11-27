@@ -87,9 +87,8 @@ p_symptom_tally(PT) :- p_symptom(PL0,cravings),
                        p_symptom(PL3,tender_breasts),
                        p_symptom(PL4,slight_bleeding),
                        (PT is (PL0 + PL1 + PL2 + PL3 + PL4)),
-                       PT > 15
-                       -> write('You might be with child'), nl;
-                       write('Your pregnancy risk is low'),nl,
+                       (PT > 15 -> write('You might be with child'), nl;
+                       write('Your pregnancy risk is low'),nl),
                        write('Pregnancy Points Tally -> '), write(PT).
 
 %Tallying the symptoms of swine flu present in the patient
