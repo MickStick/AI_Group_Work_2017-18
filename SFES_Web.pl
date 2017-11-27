@@ -29,17 +29,20 @@ Data.name,
                     Data.diarrhea
 */
 
-:- dynamic patient_sym/1, prevention/1, p_drugs/1.
+:- dynamic patient_sym/1, prevention/1, p_drugs/1, patients/1,infected_patients/1,risk_patients/1.
 
-%Initial patient_sym and p_drugs facts for the dynamic databases
-patient_sym('').
-p_drugs('').
+%Initial facts for the dynamic databases
+patient_sym().
+p_drugs().
+patients().
+infected_patients().
+risk_patients().
 
 %Full Blown Swine Flu symptoms attract a risk tally (RT) of 160
 
 %To remove all the previous patient/s symptoms
-undoSym :- retract(patient_sym(_)),fail.
-undoDrugs :- retract(p_drugs(_)),fail.
+undoSym(X) :- forall(patient_sym(X),retract(patient_sym(X))).
+undoDrugs(X) :- forall(p_drugs(X),retract(p_drugs(X))).
 
 %Drug database for educated assumptions for relief
 drugFor(advil,headache).
@@ -54,28 +57,26 @@ drugFor(pepto_bismal,diarrhea).
 drugFor(imodium,vomiting).
 drugFor(aspirin,fever).
 
+%Count the amount of patients asserted as overall patients healthy and all
+total_patients(K) :- findall(X,patients(_),L),length(L,K).
+
+%Count the amount of patients asserted as infected
+total_infected_patients(T) :- findall(X,infected_patients(_),L),length(L,T).
+
+%Count the amount of patients asserted as infected
+total_risk_patients(F) :- findall(X,risk_patients(_),L),length(L,F).
+
+%PErcentage of infected patients
+percentage_of_infected(G,H,O) :- total_patients(G),total_infected_patients(H),
+                                 O is (G * H) / 100.
+
 %Print the appropriate drug for patients symptoms
 test_gen:-
             phrase( gen_drug_ailment_data(cough), CoughHtml, []),print_html(CoughHtml).
 
-/*get_drug(X, td(X)) :-
-                    drugFor(X,Y).*/
-
 get_drug_data(X, tr([ td(Y), td(X)])) :-
                     drugFor(X,Y).
 
-/*get_ailment(X, td(X)) :-
-                    drugFor(Y,X).
-
-            
-dosomething([]).
-
-dosomething([H|T]) -->
-    html([
-            span([
-                \ailment_data(H)          
-            ])
-    ]).*/
 
 
 print_drug_ailment(Ailment) -->{
@@ -84,32 +85,6 @@ print_drug_ailment(Ailment) -->{
 },
 html([\html_post(drugData, Data)]).
 
-
-/*drug_data(Ailment) --> {
-    findall(X,drugFor(X,Ailment),Drugs),
-    maplist(get_drug, Drugs, Data)
-},
-html([\html_post(drugData, Data)]),
-html([\dosomething(Drugs)]).
-
-
-
-ailment_data(Drug) --> {
-    findall(X,drugFor(Drug,X),Ailments),
-    maplist(get_ailment, Ailments,Data)
-}, html([\html_post(ailmentData, Data)]).
-
-
-gen_drug_ailment(Drug, Ailment) -->
-        html([
-            span([
-                \drug_data(Ailment)          
-            ]),
-            tr([
-                \html_receive(ailmentData),
-                \html_receive(drugData)
-            ])
-        ]).*/
 
 gen_drug_ailment_data(Ailment) -->
         html([
@@ -132,11 +107,6 @@ getDrug(Data) :-
                             </thead>
 
                             <tbody>',[]),
-                /*(Data.cough == 'yes' -> drugFor(mucinex,X),drugFor(Y,cough),
-                                        format('<tr>
-                                                    <td>~s</td>
-                                                    <td>~s</td>
-                                                </tr>',[X,Y]);format('',[])),*/
                 (Data.cough == 'yes' -> phrase( gen_drug_ailment_data(cough), CoughHtml, []),
                                         print_html(CoughHtml); format('',[])),
                 (Data.headache == 'yes' -> phrase( gen_drug_ailment_data(headache), HeadacheHtml, []),
@@ -179,11 +149,11 @@ symptom(RL11, vomiting, Data)      :- Data.vomitting == yes -> RL11 is 20,assert
 symptom(RL9, diarrhea, Data)       :- Data.diarrhea == yes -> RL9  is 30,asserta(patient_sym(diarrhea)); RL9  is 0.
 
 %Database of facts to check if a female patient is pregnant
-p_symptom(PL0, Data)       :- Data.food == yes -> PL0 is 5; PL0 is 0.
-p_symptom(PL1, Data)    :- Data.mood == yes -> PL1 is 5; PL1 is 0.
-p_symptom(PL2, Data)         :- Data.period == yes -> PL2 is 5; PL2 is 0.
-p_symptom(PL3, Data) :- Data.breast == yes -> PL3 is 5; PL3 is 0.
-p_symptom(PL4, Data):- Data.bleed == yes -> PL4 is 5; PL4 is 0.
+p_symptom(PL0, Data, food)       :- Data.food == yes -> PL0 is 5; PL0 is 0.
+p_symptom(PL1, Data, mood)    :- Data.mood == yes -> PL1 is 5; PL1 is 0.
+p_symptom(PL2, Data, headache)         :- Data.fheadache == yes -> PL2 is 5; PL2 is 0.
+p_symptom(PL3, Data, breast) :- Data.breast == yes -> PL3 is 5; PL3 is 0.
+p_symptom(PL4, Data, bleed):- Data.bleed == yes -> PL4 is 5; PL4 is 0.
 
 %Database of prevention methods
 prevention('Stay home if you are sick.').
@@ -196,11 +166,11 @@ prevention('Reduce exposure within your household.').
 suggestion(ToPrevent) :- asserta(prevention(ToPrevent)), write('Prevention measure added!').
 
 %Tallying the risk of pregnancy which increases the risk of swine flu
-p_symptom_tally(PT, Data) :- p_symptom(PL0, Data),
-                       p_symptom(PL1, Data),
-                       p_symptom(PL2, Data),
-                       p_symptom(PL3, Data),
-                       p_symptom(PL4, Data),
+p_symptom_tally(PT, Data) :- p_symptom(PL0, Data, food),
+                       p_symptom(PL1, Data, mood),
+                       p_symptom(PL2, Data, headache),
+                       p_symptom(PL3, Data, breast),
+                       p_symptom(PL4, Data, bleed),
                        PT is (PL0 + PL1 + PL2 + PL3 + PL4).
                        %write('Pregnancy Tally -> '), write(PT).
 
@@ -247,6 +217,7 @@ server(Port) :-
     http_handler('/check/temp',temp,[]),
     http_handler('/update/prevention',updatePrev,[]),
     http_handler('/update/drug',updateDrug,[]),
+    http_handler('/stat', statusReport,[]),
     main.
 
 
@@ -289,13 +260,6 @@ head(X) :-
                                     e.preventDefault();
                                     alert("This does nuffink!!");
                                 });*/
-                                $(\'input[name="gender"]\').change(function(){
-                                    if($(this).val() == "male" || $(\'input[name="age"]\').val() > 10 || $(\'input[name="age"]\').val() < 45){
-                                        $(\'input[name="period"]\').attr("disabled","disabled");
-                                    }else{
-                                        $(\'input[name="period"]\').removeAttr("disabled");
-                                    }
-                                });
                                 $(".button-collapse").sideNav();
                                 $(window).on("beforeload", function(){
                                     $(\'.progress\').css({"display":"block"});
@@ -309,11 +273,26 @@ head(X) :-
                                     }
                                     $(\'#preventModal form\').submit();
                                 });
-                                
+                                $(\'input[name="temp"]\').change(function(){
+                                    if((($(this).val() * 1.8) + 32) > 100.4){
+                                        $(\'input[name="fever"]\').val("yes");
+                                         Materialize.toast(
+                                             \'You have a fever, \' 
+                                             + $(\'input[name="name"]\').val().split(" ")[0], 
+                                             8000);
+                                    }
+                                });
 
                             });
                         </script> 
                         <style>
+
+                            .home-container{
+                                padding: 5mm 2mm !important;
+                                margin-top: 4mm !important;
+                                border-radius: 3mm !important;
+                            }
+
                             .about-body{
                                 border-radius: 2mm;
                                 margin-top: 5mm !important;
@@ -337,11 +316,17 @@ head(X) :-
                             .not_here{
                                 display: none;
                             }
+
+                            @media screen and (min-width: 990px){
+                                .brand-logo{
+                                    margin-left: 4mm !important;
+                                }
+                            }
                         </style>                  
                     </head>'.
 
 nav :-
-        format(' <header style="position: relative; top: 0 !important;"> <nav class="green ligten-2"> <div class="nav-wrapper"> <a href="/" class="brand-logo">PL Server</a> <a href="#" data-activates="mobile-demo" class="button-collapse"><i class="material-icons">menu</i></a> <ul id="nav-mobile" class="right hide-on-med-and-down"> <li><a href="/">Home</a></li> <li><a href="/check">Check Up</a></li> <li><a href="/about">About</a></li> </ul> <ul class="side-nav" id="mobile-demo"> <li><a href="/">Home</a></li> <li><a href="/check">Check Up</a></li> <li><a href="/about">About</a></li> </ul> </div> </nav> </header><div class="progress"> <div class="indeterminate green"></div> </div> ',[]).
+        format(' <header style="position: relative; top: 0 !important;"> <nav class="green ligten-2"> <div class="nav-wrapper"> <a href="/" class="brand-logo">Swine Flu ES</a> <a href="#" data-activates="mobile-demo" class="button-collapse"><i class="material-icons">menu</i></a> <ul id="nav-mobile" class="right hide-on-med-and-down"> <li><a href="/">Home</a></li> <li><a href="/check">Checkup</a></li> <li><a href="/stat">Status Report</a></li> <li><a href="/about">About</a></li> </ul> <ul class="side-nav" id="mobile-demo"> <li><a href="/">Home</a></li> <li><a href="/check">Checkup</a></li> <li><a href="/stat">Status Report</a></li> <li><a href="/about">About</a></li> </ul> </div> </nav> </header><div class="progress"> <div class="indeterminate green"></div> </div> ',[]).
 
 index(Request) :-
         format('Content-type: text/html~n~n', []),
@@ -351,11 +336,16 @@ index(Request) :-
                     <body>',[X]),
             nav,
             format('    <div class="container">
-                            <div class="container">
+                            <div class="container light-green lighten-5 home-container">
                                 <h3 class="center"> SWINE FLU EXPERT SYSTEM </h3>
                                 <p class="center">
                                     Welcome to the Swine Flu Expert System Web Application.<br>
-
+                                    Where you can get quick and efficient swine flu check ups and information. 
+                                </p><br>
+                                <p>
+                                    Think you might have the swine? Want to be sure? <a class="green-text wave-effect waves-light" href="/check"> Get A Checkup</a><br>
+                                    Have flu prevention methods that you didn\'t find in the app? <a class="red-text wave-effect waves-light" href="/check#preventModal"> Update Preventions</a><br>
+                                    Want to suggest other drugs for a specific symptom? <a class="yellow-text wave-effect waves-light" href="/check#drugModal"> Update Drugs</a><br>
                                 </p>
                             </div>
                         </div>
@@ -369,6 +359,17 @@ check(Request) :-
                     ~s
                     <body>',[X]),
             nav,
+            format('
+                    <script>
+                        $(document).ready(function(){
+                             if(window.location.hash == "#preventModal"){
+                                 $(\'#preventModal\').modal(\'open\');
+                             }else if(window.location.hash == "#drugModal"){
+                                 $(\'#drugModal\').modal(\'open\');
+                             }
+                        });
+                    </script>
+            ',[]),
             format('    <div class="container">
                             <div class="fixed-action-btn">
                                 <button class="btn-floating btn-large tooltipped" data-position="left" data-delay="80" data-tooltip="Update Options">
@@ -426,14 +427,14 @@ check(Request) :-
                                     <h3 class="center"> Check Your SWINE FLU Status </h3>
                                     <div class="input-field">
                                         <input name="name" type="text">
-                                        <label for="name">Name</label>                                 
+                                        <label for="name">Full Name</label>                                 
                                     </div>
                                     <div class="input-field">
                                         <input name="age"  type="number">
                                         <label for="age">Age</label>                                    
                                     </div>
 
-                                    <br> <label> Do you have a penis or a vagina? </label>
+                                    <br> <label> What\'s your gender? </label>
                                     <p>
                                         <input name="gender" type="radio" id="male" value="male"/>
                                         <label for="male">Male</label>
@@ -450,7 +451,7 @@ check(Request) :-
                                     
                                     <h4 class="center"> Symptoms </h4>
                                     
-                                    <br> <label> Is you coughing, my guy? </label>
+                                    <br> <label> Do you have a cough? </label>
                                     <p>
                                         <input name="cough" type="radio" value="yes" id="cough_yes" />
                                         <label for="cough_yes"value="yes">Yes</label>
@@ -459,7 +460,7 @@ check(Request) :-
                                         <input name="cough" type="radio" value="no" id="cough_no" />
                                         <label for="cough_no"value="no">No</label>
                                     </p>
-                                    <br> <label> Eyes all watery and red? </label>
+                                    <br> <label> Are your eyes watery and red? </label>
                                     <p>
                                         <input name="eyes" type="radio" value="yes" id="eyes_yes" />
                                         <label for="eyes_yes"value="yes">Yes</label>
@@ -468,7 +469,7 @@ check(Request) :-
                                         <input name="eyes" type="radio" value="no" id="eyes_no" />
                                         <label for="eyes_no"value="no">No</label>
                                     </p>
-                                     <br> <label> Got a fever, fam? </label>
+                                     <!--<br> <label> Do you think you have a fever? </label>
                                     <p>
                                         <input name="fever" type="radio" value="yes" id="fever_yes" />
                                         <label for="fever_yes"value="yes">Yes</label>
@@ -476,8 +477,9 @@ check(Request) :-
                                     <p>
                                         <input name="fever" type="radio" value="no" id="fever_no" />
                                         <label for="fever_no"value="no">No</label>
-                                    </p>
-                                     <br> <label> Killer headache? </label>
+                                    </p>-->
+                                    <input hidden type="text" name="fever" value="no"/>
+                                     <br> <label> Do you have an headache? </label>
                                     <p>
                                         <input name="headache" type="radio" value="yes" id="headache_yes" />
                                         <label for="headache_yes"value="yes">Yes</label>
@@ -486,7 +488,7 @@ check(Request) :-
                                         <input name="headache" type="radio" value="no" id="headache_no" />
                                         <label for="headache_no"value="no">No</label>
                                     </p>
-                                     <br> <label> Throat all sore and stuff?  </label>
+                                     <br> <label> Is you throat sore?  </label>
                                     <p>
                                         <input name="throat" type="radio" value="yes" id="throat_yes" />
                                         <label for="throat_yes"value="yes">Yes</label>
@@ -495,7 +497,7 @@ check(Request) :-
                                         <input name="throat" type="radio" value="no" id="throat_no" />
                                         <label for="throat_no"value="no">No</label>
                                     </p>
-                                     <br> <label> Been feeling really tired lately? </label>
+                                     <br> <label> Have you been feeling more tired than usual? </label>
                                     <p>
                                         <input name="fatigue" type="radio" value="yes" id="fatigue_yes" />
                                         <label for="fatigue_yes"value="yes">Yes</label>
@@ -504,7 +506,7 @@ check(Request) :-
                                         <input name="fatigue" type="radio" value="no" id="fatigue_no" />
                                         <label for="fatigue_no"value="no">No</label>
                                     </p>
-                                     <br> <label> Is your nose running and stuffy? </label>
+                                     <br> <label> Do you have nassale congestion or a runny nose? </label>
                                     <p>
                                         <input name="nose" type="radio" value="yes" id="nose_yes" />
                                         <label for="nose_yes"value="yes">Yes</label>
@@ -521,15 +523,6 @@ check(Request) :-
                                     <p>
                                         <input name="ache" type="radio" value="no" id="ache_no" />
                                         <label for="ache_no"value="no">No</label>
-                                    </p>
-                                     <br> <label> Your period more than a month late? </label>
-                                    <p>
-                                        <input name="period" type="radio" value="yes" id="period_yes" />
-                                        <label for="period_yes"value="yes">Yes</label>
-                                    </p>
-                                    <p>
-                                        <input name="period" type="radio" value="no" id="period_no" />
-                                        <label for="period_no"value="no">No</label>
                                     </p>
                                      <br> <label> Do you experience nausea? </label>
                                     <p>
@@ -588,12 +581,14 @@ about(Request) :-
                             <div class="container about-body grey lighten-4">
                                 <h1> About SWine Flu </h1>
                                 <p>
-                                    I don\'t really have much to say here, cuz uk, it\'s just a quick test.</br>
-                                    But, anyways, this is me serving up some html with prolog. Not really serving up thou,
-                                    but more like html-writing the page over to the client. Hmmmm, I wonder how people use
-                                    prolog servers in real life. Like, where would you host it? Do they even still support
-                                    prolog browsers? Are they even secure? Hmmmm, seeing how data is, it\'s prolly more 
-                                    secure than SQL, but I don\'t really know what I\'m talking about.
+                                    Swine flu is a respiratory disease caused by influenza viruses that infect 
+                                    the respiratory tract of pigs and result in a barking cough, decreased appetite, 
+                                    nasal secretions, and listless behavior; the virus can be transmitted to humans. 
+                                    Swine flu viruses may mutate (change) so that they are easily transmissible among 
+                                    humans. The April 2009 swine flu outbreak (pandemic) was due to infection with the 
+                                    H1N1 virus and was first observed in Mexico. Symptoms of swine flu in humans are 
+                                    similar to most influenza infections: fever (100 F or greater), cough, nasal secretions, 
+                                    fatigue, and headache.
                                 </p>
                             </div>
                         </div>
@@ -630,10 +625,11 @@ statResults(Request, Data, RT, PT) :-
         (FTemp > 100.4 -> TR is 20; TR is 0),
         TotalRisk is RT + PT + TR,
         atom_codes(TotalRisk, TtlRisk),
-        (TotalRisk < 51 -> Title = 'Oh brah, you hella gucci', Color = 'green';
-        TotalRisk > 50, TotalRisk < 110 -> Title = 'Here are some suggestions for dodging the flu.', 
-        Color = 'orange';
-        Title = 'You have been infected with the swine.', Color = 'red'),
+        (TotalRisk < 51 -> Title = 'You\'re definately not infected.', Color = 'green';
+        TotalRisk > 50, TotalRisk < 160 -> Title = 'Not infected but you\'re at risk.', 
+        Color = 'orange', assert(risk_patients(Data.name));
+        Title = 'You have been infected with the swine.', Color = 'red',assert(infected_patients(Data.name))),
+        assert(patients(Data.name)),
         %length(prevention(Who), Y),
         %findall(X,prevention(X),Paras),
         %maplist(get_preventions, Paras,Prevents),
@@ -654,23 +650,34 @@ statResults(Request, Data, RT, PT) :-
                                         </div>            
                                     </div>
                                 <br>
-                                 
-                                <ul class="collection" id="prevents">
-                                    <li class="collection-header">
-                                        <h4 class="center">~s</h4>
-                                        <hr class=\'grey lighten-5\'>
-                                    </li>',[
+                                 <h5>~s</h5>',[
                                         Color,
                                         Color,
                                         TtlRisk,
                                         Title]),
+        (TotalRisk < 51 -> format('
+                                <ul class="collection" id="prevents">
+                                    <li class="collection-header">
+                                        <h4 class="center">Suggested Preventions</h4>
+                                        <hr class=\'grey lighten-5\'>
+                                    </li>
+                                    <li class="collection-item">
+                                        You are okay, you don\'t need to worry..
+                                    </li>
+                                </ul><br><br>',[]);
+        format('
+                                <ul class="collection" id="prevents">
+                                    <li class="collection-header">
+                                        <h4 class="center">Suggested Preventions</h4>
+                                        <hr class=\'grey lighten-5\'>
+                                    </li>',[]),
         phrase(
             gen_page,
             TokenizedHtml,
             []),
         print_html(TokenizedHtml),
         format('                </ul>
-                                <br><br>',[]),
+                                <br><br>',[])),
         getDrug(Data),
         format('
                                 <a class="btn blue accent-2" href="/">
@@ -717,7 +724,6 @@ pregCheck(Request, Data) :-
                                     <input type="hidden" value="~s" name="fatigue"/>
                                     <input type="hidden" value="~s" name="nose"/>
                                     <input type="hidden" value="~s" name="ache"/>
-                                    <input type="hidden" value="~s" name="period"/>
                                     <input type="hidden" value="~s" name="nausea"/>
                                     <input type="hidden" value="~s" name="vomitting"/>
                                     <input type="hidden" value="~s" name="sActive"/>
@@ -740,7 +746,7 @@ pregCheck(Request, Data) :-
                                         <input name="mood" type="radio" id="mood_no" value="no"/>
                                         <label for="mood_no">No</label>
                                     </p>
-                                    <br> <label> Bleeding form the vaginal area? </label>
+                                    <br> <label> Was your last period more than 3 weeks ago ? </label>
                                     <p>
                                         <input name="bleed" type="radio" id="bleed_yes" value="yes"/>
                                         <label for="bleed_yes">Yes</label>
@@ -757,6 +763,15 @@ pregCheck(Request, Data) :-
                                     <p>
                                         <input name="breast" type="radio" id="breast_no" value="no"/>
                                         <label for="breast_no">No</label>
+                                    </p>
+                                    <br> <label> Been having frequent headaches ?  </label>
+                                    <p>
+                                        <input name="fheadache" type="radio" id="fheadache_yes" value="yes"/>
+                                        <label for="fheadache_yes">Yes</label>
+                                    </p>
+                                    <p>
+                                        <input name="fheadache" type="radio" id="fheadache_no" value="no"/>
+                                        <label for="fheadache_no">No</label>
                                     </p>
 
                                     <button class="btn blue accent-2">Check</button>
@@ -778,7 +793,6 @@ pregCheck(Request, Data) :-
                         Data.fatigue,
                         Data.nose,
                         Data.ache,
-                        Data.period,
                         Data.nausea,
                         Data.vomitting,
                         Data.sActive,
@@ -804,3 +818,50 @@ updateDrug(Request):-
         http_read_data(Request, Data, []),
         asserta(drugFor(Data.drug,Data.ailment)),
         index(Request).
+
+statusReport(Request) :-
+        format('Content-type: text/html~n~n', []),
+        head(X),
+        format('<html>
+                    ~s
+
+                    <body>',[X]),
+        nav,
+        total_infected_patients(T),
+        total_patients(K),
+        total_risk_patients(F),
+        percentage_of_infected(G,H,O),
+        format('        <div class="container">
+                            <br><h4 class="center"> Status Report </h4>
+                            <hr style="width: 80% !important"> 
+                            <br>
+                            <table class="underlined">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Total Number of Patients</td>
+                                        <td>~d</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Number of Infected Patients</td>
+                                        <td>~d</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Number of At Risk Patients</td>
+                                        <td>~d</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Percentage of Patients Infected</td>
+                                        <td>~d%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <br><br><br>
+                        </div>
+                    </body>
+                </html>',[K,T,F,O]).
